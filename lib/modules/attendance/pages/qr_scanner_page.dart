@@ -12,9 +12,10 @@ class QrScannerPage extends StatefulWidget {
 
 class _QrScannerPageState extends State<QrScannerPage> {
   final c = Get.find<AttendanceController>();
+
   final MobileScannerController cam = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    facing: CameraFacing.back, // KAMERA BELAKANG DEFAULT
+    detectionSpeed: DetectionSpeed.normal, // lebih cepat dari noDuplicates
+    facing: CameraFacing.back,
   );
 
   bool locked = false;
@@ -29,12 +30,57 @@ class _QrScannerPageState extends State<QrScannerPage> {
   Future<void> _switchCamera() async {
     try {
       await cam.switchCamera();
-      setState(() {
-        isFrontCamera = !isFrontCamera;
-      });
+      setState(() => isFrontCamera = !isFrontCamera);
     } catch (e) {
-      debugPrint("Gagal switch kamera: $e");
+      debugPrint("Gagal switch camera: $e");
     }
+  }
+
+  // POPUP LIGHTWEIGHT (SUPER CEPAT)
+  void _showPopup(bool success, String message) {
+    if (Get.isDialogOpen == true) Get.back();
+
+    Get.dialog(
+      Center(
+        child: Container(
+          width: 240,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                success ? Icons.check_circle : Icons.error,
+                color: success ? Colors.green : Colors.red,
+                size: 55,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                success ? "Berhasil" : "Gagal",
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
+    Future.delayed(const Duration(milliseconds: 650), () {
+      if (Get.isDialogOpen == true) Get.back();
+    });
   }
 
   @override
@@ -43,14 +89,13 @@ class _QrScannerPageState extends State<QrScannerPage> {
       backgroundColor: Colors.black,
 
       appBar: AppBar(
-        title: const Text("Scan QR"),
         backgroundColor: Colors.black,
+        elevation: 0,
+        title: const Text("Scan QR", style: TextStyle(color: Colors.white)),
+        centerTitle: true,
         actions: [
-          // ===============================
-          // Tombol Switch Kamera
-          // ===============================
+          // SWITCH CAMERA
           IconButton(
-            tooltip: "Ganti Kamera",
             icon: Icon(
               isFrontCamera
                   ? Icons.camera_rear_rounded
@@ -59,35 +104,26 @@ class _QrScannerPageState extends State<QrScannerPage> {
             ),
             onPressed: _switchCamera,
           ),
-
-          // ===============================
-          // Flash — hanya bekerja di kamera belakang
-          // ===============================
+          // FLASH
           IconButton(
-            tooltip: "Flash",
             icon: const Icon(Icons.flash_on, color: Colors.white),
-            onPressed: () async {
+            onPressed: () {
               if (!isFrontCamera) {
-                await cam.toggleTorch();
+                cam.toggleTorch();
               } else {
                 Get.snackbar(
                   "Info",
-                  "Flash hanya tersedia di kamera belakang",
+                  "Flash hanya kamera belakang",
                   colorText: Colors.white,
-                  backgroundColor: Colors.black.withOpacity(0.5),
+                  backgroundColor: Colors.black54,
                 );
               }
             },
           ),
-
-          IconButton(
-            tooltip: "Refresh kamera",
-            icon: const Icon(Icons.refresh),
-            onPressed: () => cam.start(),
-          ),
         ],
       ),
 
+      // CAMERA AREA
       body: Stack(
         children: [
           MobileScanner(
@@ -102,39 +138,36 @@ class _QrScannerPageState extends State<QrScannerPage> {
 
               await c.processScan(qr);
 
-              // Scan berikutnya siap dalam 300 ms
-              await Future.delayed(const Duration(milliseconds: 300));
+              _showPopup(c.lastSuccess.value, c.lastMessage.value);
+
+              await Future.delayed(const Duration(milliseconds: 200));
               locked = false;
             },
           ),
 
-          // FRAME / BORDER SCAN
+          // FRAME SCAN (ringan)
           Center(
             child: Container(
-              width: 260,
-              height: 260,
+              width: 240,
+              height: 240,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.blueAccent, width: 4),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 3,
-                  ),
-                ],
+                border: Border.all(color: Colors.white70, width: 2),
               ),
             ),
           ),
 
-          // TEXT PETUNJUK
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 40),
-              child: Text(
-                "Arahkan QR ke dalam kotak",
-                style: const TextStyle(color: Colors.white70, fontSize: 16),
+          // TEXT INSTRUKSI
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Text(
+              "Arahkan QR ke kotak",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withOpacity(.85),
+                fontSize: 15,
               ),
             ),
           ),

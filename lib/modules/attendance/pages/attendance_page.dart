@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
 import '../controllers/attendance_controller.dart';
 import 'hadir_page.dart';
 import 'tidak_hadir_page.dart';
@@ -14,7 +16,6 @@ class AttendancePage extends StatefulWidget {
 }
 
 class _AttendancePageState extends State<AttendancePage> {
-  final controller = Get.find<AttendanceController>();
   int index = 0;
 
   final pages = const [
@@ -26,26 +27,66 @@ class _AttendancePageState extends State<AttendancePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: pages[index],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        onTap: (i) => setState(() => index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Dashboard"),
-          BottomNavigationBarItem(icon: Icon(Icons.qr_code), label: "Scan"),
-          BottomNavigationBarItem(icon: Icon(Icons.check), label: "Hadir"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.close),
-            label: "Tidak Hadir",
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage("assets/images/bg_app.png"),
+          fit: BoxFit.cover,
+          opacity: 0.6,
+        ),
+      ),
+
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: pages[index],
+        ),
+
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: BottomNavigationBar(
+              backgroundColor: Colors.white.withOpacity(0.95),
+              elevation: 10,
+              type: BottomNavigationBarType.fixed,
+              currentIndex: index,
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: Colors.black54,
+              onTap: (i) => setState(() => index = i),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_rounded),
+                  label: "Home",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.qr_code_rounded),
+                  label: "Scan",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.check_circle_rounded),
+                  label: "Hadir",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.cancel_rounded),
+                  label: "Tidak",
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
+
+// ===================================================================
+//                             DASHBOARD
+// ===================================================================
 
 class AttendanceDashboard extends StatelessWidget {
   const AttendanceDashboard({super.key});
@@ -54,63 +95,115 @@ class AttendanceDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.find<AttendanceController>();
 
+    final now = DateTime.now();
+    final hari = DateFormat('EEEE', 'id_ID').format(now);
+    final tanggal = DateFormat('d MMMM yyyy', 'id_ID').format(now);
+
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Obx(() {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Dashboard Absensi",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+      child: Container(
+        color: Colors
+            .transparent, // <---- WAJIB AGAR BACKGROUND GAMBAR TIDAK TERTUTUP
+
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Obx(() {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 6),
+
+                const Text(
+                  "Absensi Sholat",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _stat("Santri", c.totalSantri.value, Colors.blue),
-                  _stat("Hadir", c.totalHadir.value, Colors.green),
-                  _stat("Tidak", c.totalTidakHadir.value, Colors.red),
-                ],
-              ),
-            ],
-          );
-        }),
+
+                const SizedBox(height: 4),
+
+                Text(
+                  "$hari, $tanggal",
+                  style: const TextStyle(
+                    fontSize: 17,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _statCard("Siswa", c.totalSantri.value, Colors.blue),
+                    _statCard("Hadir", c.totalHadir.value, Colors.green),
+                    _statCard("Tidak", c.totalTidakHadir.value, Colors.red),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
 
-  Widget _stat(String title, int value, Color color) {
-    return Container(
-      width: 100,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            backgroundColor: color.withOpacity(.2),
-            child: Icon(Icons.circle, color: color),
-          ),
-          SizedBox(height: 10),
-          Text(
-            "$value",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-              color: color,
+  Widget _statCard(String title, int value, Color color) {
+    return TweenAnimationBuilder(
+      duration: const Duration(milliseconds: 300),
+      tween: Tween(begin: 0.82, end: 1.0),
+      curve: Curves.easeOutBack,
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: Container(
+        width: 105,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ),
-          Text(title),
-        ],
+          ],
+        ),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: color.withOpacity(.15),
+              child: Icon(Icons.circle, color: color, size: 16),
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              "$value",
+              style: TextStyle(
+                fontSize: 22,
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
