@@ -13,65 +13,71 @@ import '../../../domain/usecases/filter_by_class_usecase.dart';
 import '../../../domain/usecases/scan_result.dart';
 
 class AttendanceController extends GetxController {
-  // Repository
-  final StudentRepository studentRepo = StudentRepository();
-  final AttendanceRepository attendanceRepo = AttendanceRepository();
-  final ClassRepository classRepo = ClassRepository();
+  // Repositories
+  final studentRepo = StudentRepository();
+  final attendanceRepo = AttendanceRepository();
+  final classRepo = ClassRepository();
 
   // Usecases
-  late final ScanQrUsecase scanQrUsecase;
-  late final GetDashboardStatsUsecase dashboardUsecase;
-  late final FilterByClassUsecase filterClassUsecase;
+  late final ScanQrUsecase scanQr;
+  late final GetDashboardStatsUsecase dashboard;
+  late final FilterByClassUsecase filterClass;
 
   // Observables
-  Rx<Student?> scannedStudent = Rx<Student?>(null);
-  RxBool loadingScan = false.obs;
+  final scannedStudent = Rx<Student?>(null);
+  final loadingScan = false.obs;
 
-  // Dashboard
-  RxInt totalSantri = 0.obs;
-  RxInt totalHadir = 0.obs;
-  RxInt totalTidakHadir = 0.obs;
+  // Dashboard values
+  final totalSantri = 0.obs;
+  final totalHadir = 0.obs;
+  final totalTidakHadir = 0.obs;
 
-  // Kelas
-  RxList<ClassModel> allClasses = <ClassModel>[].obs;
-  RxInt selectedClassId = 0.obs;
+  // Classes
+  final allClasses = <ClassModel>[].obs;
+  final selectedClassId = 0.obs;
 
   // Lists
-  RxList<Student> hadirList = <Student>[].obs;
-  RxList<Student> tidakHadirList = <Student>[].obs;
+  final hadirList = <Student>[].obs;
+  final tidakHadirList = <Student>[].obs;
 
-  // Result popup
-  RxBool lastSuccess = false.obs;
-  RxString lastMessage = "".obs;
+  // Scan result popup
+  final lastSuccess = false.obs;
+  final lastMessage = "".obs;
 
+  // Init
   @override
   void onInit() {
     super.onInit();
 
-    scanQrUsecase = ScanQrUsecase(studentRepo, attendanceRepo);
-    dashboardUsecase = GetDashboardStatsUsecase(studentRepo, attendanceRepo);
-    filterClassUsecase = FilterByClassUsecase(studentRepo);
+    scanQr = ScanQrUsecase(studentRepo, attendanceRepo);
+    dashboard = GetDashboardStatsUsecase(studentRepo, attendanceRepo);
+    filterClass = FilterByClassUsecase(studentRepo);
 
     loadInitialData();
   }
 
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
   Future<void> loadInitialData() async {
     await loadClasses();
     await loadDashboard();
     await loadLists();
   }
 
-  // ============================================================
-  // LOAD DATA
-  // ============================================================
-
+  // =====================================================
+  // LOAD CLASSES
+  // =====================================================
   Future<void> loadClasses() async {
     final data = await classRepo.getAll();
     allClasses.assignAll([ClassModel(id: 0, namaKelas: "Semua"), ...data]);
   }
 
+  // =====================================================
+  // DASHBOARD
+  // =====================================================
   Future<void> loadDashboard() async {
-    final stats = await dashboardUsecase.load(
+    final stats = await dashboard.load(
       classId: selectedClassId.value == 0 ? null : selectedClassId.value,
     );
 
@@ -80,29 +86,30 @@ class AttendanceController extends GetxController {
     totalTidakHadir.value = stats.totalTidakHadir;
   }
 
+  // =====================================================
+  // LOAD STUDENT LISTS
+  // =====================================================
   Future<void> loadLists() async {
-    int? cid = selectedClassId.value == 0 ? null : selectedClassId.value;
+    final cid = selectedClassId.value == 0 ? null : selectedClassId.value;
 
     final all = await studentRepo.getAll(classId: cid);
     final hadir = await attendanceRepo.getTodayAttendances(classId: cid);
 
-    final hadirIds = hadir.map((a) => a.studentId).toSet();
+    final hadirIds = hadir.map((e) => e.studentId).toSet();
 
     hadirList.assignAll(all.where((s) => hadirIds.contains(s.id)).toList());
-
     tidakHadirList.assignAll(
       all.where((s) => !hadirIds.contains(s.id)).toList(),
     );
   }
 
-  // ============================================================
-  // SCAN QR
-  // ============================================================
-
+  // =====================================================
+  // QR SCAN PROCESS
+  // =====================================================
   Future<void> processScan(String qr) async {
     loadingScan.value = true;
 
-    final result = await scanQrUsecase.execute(qr);
+    final result = await scanQr.execute(qr);
 
     lastSuccess.value = result.success;
     lastMessage.value = result.message;
@@ -113,21 +120,15 @@ class AttendanceController extends GetxController {
 
     loadingScan.value = false;
 
-    // show popup
     _showDialog(result);
   }
 
-  // ============================================================
-  // POPUP AUTO CLOSE (1 DETIK)
-  // ============================================================
-
+  // =====================================================
+  // POPUP AUTO CLOSE
+  // =====================================================
   void _showDialog(ScanResult result) {
-    // Jika ada popup sedang tampil → tutup dulu
-    if (Get.isDialogOpen == true) {
-      Get.back();
-    }
+    if (Get.isDialogOpen == true) Get.back();
 
-    // Tampilkan popup baru
     Get.dialog(
       AlertDialog(
         title: Text(
@@ -149,21 +150,17 @@ class AttendanceController extends GetxController {
           ],
         ),
       ),
-      barrierDismissible: false, // agar popup tidak tertutup tangan pengguna
+      barrierDismissible: false,
     );
 
-    // Hilang otomatis setelah 1 detik
     Future.delayed(const Duration(seconds: 1), () {
-      if (Get.isDialogOpen == true) {
-        Get.back();
-      }
+      if (Get.isDialogOpen == true) Get.back();
     });
   }
 
-  // ============================================================
-  // CHANGE KELAS
-  // ============================================================
-
+  // =====================================================
+  // CHANGE CLASS FILTER
+  // =====================================================
   Future<void> changeClass(int value) async {
     selectedClassId.value = value;
     await loadDashboard();

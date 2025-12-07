@@ -14,7 +14,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
   final c = Get.find<AttendanceController>();
 
   final MobileScannerController cam = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal, // lebih cepat dari noDuplicates
+    detectionSpeed: DetectionSpeed.normal,
     facing: CameraFacing.back,
   );
 
@@ -32,11 +32,11 @@ class _QrScannerPageState extends State<QrScannerPage> {
       await cam.switchCamera();
       setState(() => isFrontCamera = !isFrontCamera);
     } catch (e) {
-      debugPrint("Gagal switch camera: $e");
+      debugPrint("Gagal switch kamera: $e");
     }
   }
 
-  // POPUP LIGHTWEIGHT (SUPER CEPAT)
+  // POPUP CEPAT
   void _showPopup(bool success, String message) {
     if (Get.isDialogOpen == true) Get.back();
 
@@ -78,7 +78,7 @@ class _QrScannerPageState extends State<QrScannerPage> {
       barrierDismissible: false,
     );
 
-    Future.delayed(const Duration(milliseconds: 650), () {
+    Future.delayed(const Duration(milliseconds: 700), () {
       if (Get.isDialogOpen == true) Get.back();
     });
   }
@@ -94,7 +94,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
         title: const Text("Scan QR", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         actions: [
-          // SWITCH CAMERA
           IconButton(
             icon: Icon(
               isFrontCamera
@@ -104,7 +103,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
             ),
             onPressed: _switchCamera,
           ),
-          // FLASH
           IconButton(
             icon: const Icon(Icons.flash_on, color: Colors.white),
             onPressed: () {
@@ -123,29 +121,30 @@ class _QrScannerPageState extends State<QrScannerPage> {
         ],
       ),
 
-      // CAMERA AREA
       body: Stack(
         children: [
           MobileScanner(
             controller: cam,
             onDetect: (capture) async {
-              if (locked) return;
-
               final qr = capture.barcodes.first.rawValue;
               if (qr == null) return;
 
+              if (locked) return; // cegah double scan
               locked = true;
 
+              // proses scan
               await c.processScan(qr);
 
+              // popup
               _showPopup(c.lastSuccess.value, c.lastMessage.value);
 
-              await Future.delayed(const Duration(milliseconds: 200));
+              // delay sangat singkat
+              await Future.delayed(const Duration(milliseconds: 300));
               locked = false;
             },
           ),
 
-          // FRAME SCAN (ringan)
+          // FRAME
           Center(
             child: Container(
               width: 240,
@@ -157,7 +156,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
             ),
           ),
 
-          // TEXT INSTRUKSI
           Positioned(
             bottom: 40,
             left: 0,

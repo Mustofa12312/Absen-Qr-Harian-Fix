@@ -5,9 +5,12 @@ class ScanResult {
   final String message;
   final Student? student;
 
+  /// Hasil scan sukses
   ScanResult.success(this.student)
-    : success = true,
-      message = "Absensi berhasil disimpan";
+      : success = true,
+        message = "Absensi berhasil disimpan";
 
-  ScanResult.error(this.message, {this.student}) : success = false;
+  /// Hasil scan gagal
+  ScanResult.error(this.message, {this.student})
+      : success = false;
 }

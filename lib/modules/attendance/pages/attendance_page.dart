@@ -132,7 +132,7 @@ class AttendanceDashboard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
