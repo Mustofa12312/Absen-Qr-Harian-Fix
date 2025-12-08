@@ -143,7 +143,18 @@ class AttendanceDashboard extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
+
+                Center(
+                  child: const Text(
+                    "MTs Khozinatul Ulum Blora",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ],
             );
           }),
